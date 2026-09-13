@@ -1,362 +1,73 @@
 import streamlit as st
-import pandas as pd
+import streamlit.components.v1 as components
 
-st.set_page_config(
-    page_title="ТехДок База",
-    page_icon="⚙️",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+st.set_page_config(page_title="ТехДок База", page_icon="⚙️", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
 <style>
-[data-testid="stHeader"], #MainMenu, footer {display:none!important;}
-[data-testid="stAppViewContainer"] {background:#eef4f9;}
-[data-testid="stSidebar"] {background:linear-gradient(180deg,#123d64 0%,#0a2f50 58%,#082944 100%);}
-[data-testid="stSidebar"] * {color:#eef6fc;}
-[data-testid="stSidebar"] .stButton>button {width:100%;text-align:left;justify-content:flex-start;background:transparent;border:0;color:#eaf3fa;padding:.55rem .7rem;border-radius:6px;font-size:.86rem;}
-[data-testid="stSidebar"] .stButton>button:hover {background:#2b6fa7;border:0;color:white;}
-.block-container {max-width:1600px;padding:1rem 1.25rem 2rem 1.25rem;}
-h1,h2,h3 {color:#122b46;}
-.demo-badge {display:inline-block;background:#fff3c8;color:#735605;border:1px solid #ead48a;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:700;}
-.top-title {font-size:1.15rem;font-weight:800;color:#132d49;margin-bottom:2px;}
-.top-sub {font-size:.78rem;color:#71869a;margin-bottom:8px;}
-.card {background:white;border:1px solid #dde6ee;border-radius:8px;box-shadow:0 2px 10px rgba(15,49,83,.07);padding:12px;}
-.small {font-size:.75rem;color:#70859a;}
-.ok {color:#16895b;font-weight:700;}
-.warn {color:#b9770b;font-weight:700;}
-.review {color:#d13a3a;font-weight:700;}
-.kpi-label {font-size:.72rem;color:#536a80;}
-.kpi-value {font-size:1.55rem;font-weight:800;color:#102942;line-height:1.1;}
-.kpi-delta {font-size:.68rem;color:#149b63;margin-top:5px;}
-.section-title {font-size:.96rem;font-weight:800;color:#142d48;margin:0 0 8px 0;}
-.tree-line {padding:5px 8px;border-radius:5px;font-size:.82rem;color:#30495f;}
-.tree-line.sel {background:#dcecff;color:#0d4c88;font-weight:700;}
-.query-chip {background:#f8fbfe;border:1px solid #d8e3eb;border-radius:6px;padding:9px;font-size:.76rem;color:#567086;min-height:54px;}
-hr {border-color:#dfe7ee!important;}
-div[data-testid="stMetric"] {background:white;border:1px solid #dde6ee;border-radius:8px;padding:10px 12px;box-shadow:0 2px 10px rgba(15,49,83,.07);}
-.stTabs [data-baseweb="tab-list"] {gap:4px;}
-.stTabs [data-baseweb="tab"] {background:#f4f8fb;border-radius:6px 6px 0 0;padding:8px 12px;}
-.stDataFrame {border:1px solid #dde6ee;border-radius:6px;overflow:hidden;}
+[data-testid="stHeader"], [data-testid="stToolbar"], #MainMenu, footer {display:none!important;}
+html, body, [data-testid="stAppViewContainer"], .stApp {background:#eef4f9!important; overflow:hidden!important;}
+.block-container {max-width:none!important; padding:0!important; margin:0!important;}
+[data-testid="stVerticalBlock"] {gap:0!important;}
+iframe {display:block!important; border:0!important; width:100%!important;}
 </style>
 """, unsafe_allow_html=True)
 
-# -------------------- DEMO DATA --------------------
-# Названия частично похожи на реальный массив проекта; все количества и результаты демонстрационные.
-DOCS = [
-    ["ECRT0000248608РЭ", "Руководство по ТО и ТР ЭВС360", "v6.5", 71, 1842, 63, "Обработан", "12.09.2026"],
-    ["СТМГ190.90.00.000РЭ", "Головная сцепка", "ред. 4", 152, 1216, 38, "Обработан", "11.09.2026"],
-    ["СТМГ190.00.00.000РЭ", "Сцепное устройство", "ред. 3", 286, 2408, 74, "Обработан", "10.09.2026"],
-    ["DEMO-KSK-01", "Диски КСК", "ред. 2", 94, 812, 26, "Обработан", "09.09.2026"],
-    ["DEMO-STAB-01", "Стабилизатор", "ред. 5", 138, 1164, 31, "Обработан", "08.09.2026"],
-    ["DEMO-COMP-01", "Компрессорный агрегат", "v4", 286, 1842, 63, "Обработан", "07.09.2026"],
-    ["DEMO-BRAKE-01", "Тормозное оборудование", "v3", 412, 3117, 128, "Обработан", "05.09.2026"],
-    ["DEMO-DOOR-01", "Дверная система", "v2", 158, 974, 18, "Обработан", "04.09.2026"],
-    ["DEMO-HVAC-01", "Климатическая установка", "v1", 320, 2406, 71, "Обработан", "02.09.2026"],
-    ["DEMO-BOGIE-01", "Оборудование тележки", "v2", 502, 4881, 210, "Требует проверки", "31.08.2026"],
-    ["ECPT0000001768", "Интервалы технического обслуживания", "2026", 48, 386, 12, "Обработан", "29.08.2026"],
-    ["DEMO-CONV-01", "Тяговый преобразователь", "v5", 364, 2760, 96, "Обработка", "28.08.2026"],
-]
-DOC_COLS = ["Обозначение", "Документ", "Версия", "Страниц", "Блоков", "Таблиц", "Статус", "Дата"]
-DOC_DF = pd.DataFrame(DOCS, columns=DOC_COLS)
+APP = r'''
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#eef4f9;font-family:Inter,Segoe UI,Arial,sans-serif;color:#16314e}.stage{position:relative;width:1600px;height:900px;transform-origin:0 0;background:#eef4f9}.sidebar{position:absolute;left:0;top:0;width:200px;height:900px;background:linear-gradient(180deg,#123d64 0%,#0a2f50 58%,#082944 100%);color:white}.brand{height:70px;padding:14px 15px;display:flex;gap:11px;align-items:center;border-bottom:1px solid rgba(255,255,255,.08)}.logo{width:36px;height:36px;border-radius:9px;background:#eef7ff;color:#154c78;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800}.brand b{display:block;font-size:18px}.brand small{display:block;color:#c1d5e5;font-size:10px;margin-top:4px}.nav{padding:10px 7px}.nav button{width:100%;height:42px;border:0;border-radius:5px;background:transparent;color:#eef6fc;text-align:left;padding:0 12px;font-size:12.5px;cursor:pointer;display:flex;gap:10px;align-items:center}.nav button:hover,.nav button.active{background:#2c72ac}.nav .ico{width:18px;text-align:center}.sidefoot{position:absolute;left:16px;right:16px;bottom:15px;font-size:10px;color:#d9e8f3}.sidefoot hr{border:0;border-top:1px solid rgba(255,255,255,.35);margin:0 0 16px}.meter{height:8px;border-radius:99px;background:#315d7e;overflow:hidden;margin:8px 0 7px}.meter span{display:block;width:42%;height:100%;background:#5aa4eb}.topbar{position:absolute;left:200px;right:0;top:0;height:61px;background:linear-gradient(90deg,#154b78,#0f3c66);padding:11px 18px;display:flex;gap:14px;align-items:center}.search{height:38px;width:640px;background:white;border-radius:5px;border:0;padding:0 14px;color:#6e8499;font-size:12px;outline:none}.searchbtn{height:38px;width:42px;margin-left:-56px;border:0;background:transparent;color:#0e355c;font-size:18px;cursor:pointer}.spacer{flex:1}.demo{font-size:9px;background:#fff1b9;color:#745a07;border:1px solid #e2ca72;padding:6px 9px;border-radius:999px;font-weight:800}.topbtn{height:38px;border:1px solid rgba(255,255,255,.22);background:#2f82e7;color:white;border-radius:5px;padding:0 16px;font-weight:700;font-size:11.5px;cursor:pointer}.round{width:30px;height:30px;border:1px solid #bcd0e1;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:12px}.avatar{background:white;color:#2d6fae;font-weight:800}.admin{color:white;font-size:11px}.main{position:absolute;left:200px;top:61px;width:1400px;height:839px;padding:10px 12px 10px}.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;height:90px}.card{background:white;border:1px solid #d9e5ee;border-radius:5px;box-shadow:0 2px 8px rgba(12,52,86,.07);overflow:hidden}.kpi{display:flex;align-items:center;padding:12px 13px;gap:12px}.ki{width:48px;height:48px;border-radius:13px;background:#e7f1fb;display:flex;align-items:center;justify-content:center;font-size:23px;color:#517189}.ki.blue{background:#e4f0ff;color:#2d7ff9}.ki.green{background:#e2f4eb;color:#26976f}.ki.red{background:#fde7e7;color:#d93e3e}.kl{font-size:10px;color:#42576c}.kv{font-size:22px;font-weight:800;color:#102a47;margin-top:2px}.delta{font-size:9px;color:#0a9a5c;font-weight:700;margin-top:7px}.delta.red{color:#d33}.topgrid{height:246px;margin-top:9px;display:grid;grid-template-columns:1.63fr .92fr .8fr;gap:9px}.head{height:38px;border-bottom:1px solid #edf1f4;padding:0 13px;display:flex;align-items:center;font-size:14px;font-weight:800}.head .link{margin-left:auto;color:#1775d6;font-size:9.5px;font-weight:600;cursor:pointer}.docstable{width:100%;border-collapse:collapse}.docstable th,.docstable td{font-size:9.4px;height:31px;padding:0 7px;border-bottom:1px solid #edf1f4;text-align:left;white-space:nowrap}.docstable th{background:#f3f7fa;color:#4d6276}.docstable tr{cursor:pointer}.docstable tbody tr:hover,.docstable tr.sel{background:#e1efff}.docname{color:#1671cf;font-weight:700}.badge{display:inline-block;border-radius:4px;padding:3px 6px;font-size:8.5px}.ok{background:#dcf4e8;color:#178659}.work{background:#fff0ce;color:#a86a08}.chart{height:207px;display:flex;align-items:center;justify-content:center;gap:18px}.donut{width:135px;height:135px;border-radius:50%;background:conic-gradient(#2d7ff9 0 62%,#56a6b3 62% 77%,#91c5d2 77% 85%,#8e72d2 85% 91%,#aaa0a2 91% 95%,#ef704b 95% 98%,#df6571 98% 99%,#9aabb9 99%);position:relative}.donut:after{content:"";position:absolute;inset:29px;background:white;border-radius:50%}.donuttext{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:17px;font-weight:800}.donuttext small{font-size:9px;font-weight:500}.legend{font-size:9.2px;line-height:1.86}.legend span{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}.types{padding:7px 12px}.typerow{display:grid;grid-template-columns:96px 1fr 38px;gap:7px;align-items:center;height:25px;font-size:9.3px}.bar{height:12px;background:#e7edf2;border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:#3c88e6}.midgrid{height:385px;margin-top:9px;display:grid;grid-template-columns:.72fr 1.23fr 1.35fr;gap:9px}.tree{padding:7px 9px}.tree .root{font-size:11px;font-weight:800;height:30px;display:flex;align-items:center;border-bottom:1px solid #edf1f4;margin-bottom:4px}.tr{height:26px;display:flex;align-items:center;gap:6px;padding:0 6px;font-size:9.5px;border-radius:3px;cursor:pointer}.tr:hover,.tr.sel{background:#dcecff;color:#0d4d89;font-weight:700}.indent{padding-left:25px}.filter{height:42px;display:flex;gap:6px;padding:6px 8px;border-bottom:1px solid #edf1f4}.filter button,.filter input,.filter select{height:29px;border:1px solid #cbd8e4;border-radius:4px;background:white;color:#526a7e;font-size:9.5px}.filter button{width:75px;cursor:pointer}.filter input{flex:1;padding:0 8px}.filter select{width:106px}.blocks{width:100%;border-collapse:collapse}.blocks th,.blocks td{height:31px;border-bottom:1px solid #e9eef2;padding:0 7px;font-size:8.8px;text-align:left}.blocks th{height:26px;background:#f4f8fb;color:#546a7d}.blocks tbody tr{cursor:pointer}.blocks tbody tr:hover,.blocks tr.sel{background:#dceeff}.need{background:#fff0d0;color:#a96c08;border-radius:4px;padding:3px 5px;font-size:7.8px;font-weight:700}.smallok{background:#def5e8;color:#18885b;border-radius:4px;padding:3px 5px;font-size:7.8px}.pager{height:34px;display:flex;align-items:center;justify-content:flex-end;gap:4px;padding:0 8px;font-size:8.5px;color:#5c7487}.pg{width:24px;height:24px;border:1px solid #ccd8e2;background:white;border-radius:4px;display:flex;align-items:center;justify-content:center}.pg.on{background:#d8ebff;color:#1b6fc8}.tabs{height:38px;display:flex;border-bottom:1px solid #dce6ee}.tab{border:0;background:transparent;padding:0 13px;color:#657c90;font-size:9.6px;cursor:pointer}.tab.active{color:#176fd0;font-weight:700;border-bottom:2px solid #2c80e9;background:#f9fcff}.preview{padding:9px}.ptitle{font-size:12px;font-weight:800;margin-bottom:7px}.mini{width:100%;border-collapse:collapse}.mini th,.mini td{border:1px solid #d5dee6;font-size:7.8px;padding:5px 4px;vertical-align:top}.mini th{background:#f5f7f9}.meta{font-size:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;margin-top:7px}.meta b{color:#41596e}.fakepage{display:none;height:326px;background:#f7f9fb;border:1px solid #d7e0e7;border-radius:4px;padding:12px;font-size:10px}.fakepage h4{margin:0 0 8px;font-size:11px}.bottom{height:78px;margin-top:9px;padding:0 9px 8px}.bottomhead{height:34px;display:flex;align-items:center;font-size:12px;font-weight:800}.bottomhead button{margin-left:auto;border:0;background:#2d7fe8;color:white;border-radius:4px;padding:6px 10px;font-size:9px;cursor:pointer}.queries{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}.query{height:37px;border:1px solid #d7e2ea;background:#fbfdff;border-radius:4px;padding:6px 8px;font-size:8.5px;color:#567084;text-align:left;cursor:pointer}.query:hover{border-color:#79afe8;background:#f0f7ff}.toast{position:absolute;right:18px;bottom:18px;background:#113c63;color:white;padding:11px 14px;border-radius:6px;font-size:10px;box-shadow:0 5px 20px rgba(0,0,0,.2);opacity:0;transform:translateY(8px);transition:.18s;pointer-events:none;z-index:99}.toast.show{opacity:1;transform:none}.pageoverlay{display:none;position:absolute;left:212px;top:72px;width:1376px;height:816px;background:#eef4f9;z-index:30}.pageoverlay.show{display:block}.pagebox{height:100%;background:white;border:1px solid #d9e5ee;border-radius:6px;box-shadow:0 2px 9px rgba(0,0,0,.06);padding:18px}.pagebar{display:flex;align-items:center;margin-bottom:14px}.pagebar h2{margin:0;font-size:20px}.pagebar button{margin-left:auto;border:1px solid #c9d7e2;background:#fff;border-radius:5px;padding:8px 12px;cursor:pointer}.pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.pitem{border:1px solid #dce5ec;border-radius:5px;padding:12px;background:#f9fbfd}.pitem b{display:block;font-size:12px;margin-bottom:6px}.pitem small{color:#6a7f92}.modal{display:none;position:absolute;inset:0;background:rgba(3,24,42,.34);z-index:80;align-items:center;justify-content:center}.modal.show{display:flex}.modalbox{width:520px;background:white;border-radius:8px;box-shadow:0 15px 45px rgba(0,0,0,.25);padding:18px}.modalbox h3{margin:0 0 10px}.modalbox textarea{width:100%;height:100px;border:1px solid #cbd8e4;border-radius:5px;padding:9px;resize:none}.modalbox button{margin-top:10px;border:0;background:#2d7fe8;color:white;border-radius:5px;padding:9px 14px;cursor:pointer}.modalbox .close{float:right;background:#eef3f7;color:#38566f}
+</style>
+</head>
+<body>
+<div id="scale" class="stage">
+<aside class="sidebar"><div class="brand"><div class="logo">⚙</div><div><b>ТехДок База</b><small>Структурированная техническая документация</small></div></div><div class="nav" id="nav">
+<button class="active" data-page="Главная"><span class="ico">⌂</span>Главная</button><button data-page="Документы"><span class="ico">▤</span>Документы</button><button data-page="Поиск"><span class="ico">⌕</span>Поиск</button><button data-page="Компоненты"><span class="ico">◉</span>Компоненты</button><button data-page="Техническое обслуживание"><span class="ico">🔧</span>Техническое обслуживание</button><button data-page="Требования"><span class="ico">▣</span>Требования</button><button data-page="Неисправности"><span class="ico">⚠</span>Неисправности</button><button data-page="Таблицы"><span class="ico">▦</span>Таблицы</button><button data-page="Рисунки"><span class="ico">▧</span>Рисунки</button><button data-page="Сравнение версий"><span class="ico">◴</span>Сравнение версий</button><button data-page="Экспорт"><span class="ico">⇩</span>Экспорт</button><button data-page="Настройки"><span class="ico">⚙</span>Настройки</button></div><div class="sidefoot"><hr><b>Использование</b><div class="meter"><span></span></div>42.3 ГБ из 100 ГБ<div style="margin-top:18px;line-height:2">Документов: 86<br>Обновлено: 13.09.2026 21:50</div></div></aside>
+<header class="topbar"><input id="search" class="search" placeholder="Поиск по всей документации... (например: операции ТО компрессора)"><button class="searchbtn" onclick="doSearch()">⌕</button><div class="spacer"></div><span class="demo">ДЕМО · ДАННЫЕ ВЫМЫШЛЕНЫ</span><button class="topbtn" onclick="openChat()">▱ &nbsp; Задать вопрос в ChatGPT</button><span class="round">?</span><span class="round avatar">АП</span><span class="admin">Администратор⌄</span></header>
+<main class="main">
+<section class="kpis"><div class="card kpi"><div class="ki blue">▤</div><div><div class="kl">Документов</div><div class="kv">86</div><div class="delta">↑ +12 в этом месяце</div></div></div><div class="card kpi"><div class="ki">▰</div><div><div class="kl">Всего блоков</div><div class="kv">48 320</div><div class="delta">↑ +3 420</div></div></div><div class="card kpi"><div class="ki green">▦</div><div><div class="kl">Таблиц</div><div class="kv">2 140</div><div class="delta">↑ +217</div></div></div><div class="card kpi"><div class="ki">🔧</div><div><div class="kl">Операций ТО</div><div class="kv">6 870</div><div class="delta">↑ +503</div></div></div><div class="card kpi"><div class="ki">⚙</div><div><div class="kl">Компонентов</div><div class="kv">4 312</div></div></div><div class="card kpi"><div class="ki red">⚠</div><div><div class="kl">Требуют проверки</div><div class="kv" style="color:#d53333">37</div><div class="delta red">↓ -8</div></div></div></section>
+<section class="topgrid"><div class="card"><div class="head">Последние документы <span class="link" onclick="openPage('Документы')">Все документы →</span></div><table class="docstable"><thead><tr><th>Название</th><th>Тип</th><th>Версия</th><th>Стр.</th><th>Блоков</th><th>Табл.</th><th>Статус</th><th>Дата</th></tr></thead><tbody id="docs"><tr class="sel" data-doc="Руководство ТО и ТР ЭВС360"><td class="docname">▣ ECRT0000248608РЭ</td><td>PDF</td><td>v6.5</td><td>71</td><td>1 842</td><td>63</td><td><span class="badge ok">✓ Обработан</span></td><td>12.09.2026</td></tr><tr data-doc="Головная сцепка"><td class="docname">▣ СТМГ190.90.00.000РЭ</td><td>PDF</td><td>ред.4</td><td>152</td><td>1 216</td><td>38</td><td><span class="badge ok">✓ Обработан</span></td><td>10.09.2026</td></tr><tr data-doc="Сцепное устройство"><td class="docname">▣ СТМГ190.00.00.000РЭ</td><td>PDF</td><td>ред.3</td><td>286</td><td>2 408</td><td>74</td><td><span class="badge ok">✓ Обработан</span></td><td>08.09.2026</td></tr><tr data-doc="Диски КСК"><td class="docname">▣ DEMO-KSK-01</td><td>PDF</td><td>ред.2</td><td>94</td><td>812</td><td>26</td><td><span class="badge ok">✓ Обработан</span></td><td>05.09.2026</td></tr><tr data-doc="Стабилизатор"><td class="docname">▣ DEMO-STAB-01</td><td>PDF</td><td>ред.5</td><td>138</td><td>1 164</td><td>31</td><td><span class="badge ok">✓ Обработан</span></td><td>03.09.2026</td></tr><tr data-doc="Компрессорный агрегат"><td class="docname">▣ DEMO-COMP-01</td><td>PDF</td><td>v4</td><td>286</td><td>1 842</td><td>63</td><td><span class="badge work">◌ Обработка</span></td><td>02.09.2026</td></tr></tbody></table></div>
+<div class="card"><div class="head">Распределение блоков</div><div class="chart"><div class="donut"><div class="donuttext">48 320<small>блоков</small></div></div><div class="legend"><div><span style="background:#2d7ff9"></span>Текстовые блоки 62%</div><div><span style="background:#56a6b3"></span>Таблицы 15%</div><div><span style="background:#91c5d2"></span>Списки 8%</div><div><span style="background:#8e72d2"></span>Заголовки 6%</div><div><span style="background:#aaa0a2"></span>Рисунки 4%</div><div><span style="background:#ef704b"></span>Примечания 3%</div><div><span style="background:#df6571"></span>Предупреждения 1%</div><div><span style="background:#9aabb9"></span>Другое 1%</div></div></div></div>
+<div class="card"><div class="head">Типы информации</div><div class="types"><div class="typerow"><span>Операции ТО</span><div class="bar"><i style="width:84%"></i></div><b>6 870</b></div><div class="typerow"><span>Требования</span><div class="bar"><i style="width:62%;background:#48ad7a"></i></div><b>4 210</b></div><div class="typerow"><span>Тех. характеристики</span><div class="bar"><i style="width:55%;background:#8a69d3"></i></div><b>3 540</b></div><div class="typerow"><span>Неисправности</span><div class="bar"><i style="width:44%;background:#e9873f"></i></div><b>2 980</b></div><div class="typerow"><span>Компоненты</span><div class="bar"><i style="width:67%;background:#579bea"></i></div><b>4 312</b></div><div class="typerow"><span>Предупреждения</span><div class="bar"><i style="width:25%;background:#d96e6e"></i></div><b>1 240</b></div><div class="typerow"><span>Интервалы</span><div class="bar"><i style="width:54%;background:#66acbe"></i></div><b>3 860</b></div><div class="typerow"><span>Другое</span><div class="bar"><i style="width:77%;background:#8fa1b1"></i></div><b>5 320</b></div></div></div></section>
+<section class="midgrid"><div class="card"><div class="head">Структура документа</div><div class="tree"><div class="root" id="docTitle">▣ Руководство ТО и ТР ЭВС360 · v6.5</div><div class="tr">› ■ 1. Общие положения</div><div class="tr">› ■ 2. Требования безопасности</div><div class="tr">› ■ 3. Подготовка к работам</div><div class="tr">⌄ ■ 4. Выполнение технического обслуживания</div><div class="tr indent">▧ 4.1 Общие принципы</div><div class="tr indent">▧ 4.2 Общие методы</div><div class="tr indent sel">▣ 4.3 Сезонное обслуживание</div><div class="tr indent">▧ 4.4 Операции без ЭД</div><div class="tr">› ■ 5. Замена компонентов</div><div class="tr">› ■ 6. Завершение работ</div><div class="tr">› ■ Приложения А–И</div></div></div>
+<div class="card"><div class="head">Блоки раздела: 4.3 Сезонное обслуживание</div><div class="filter"><button onclick="toast('Фильтры открыты: тип, статус, интервал, компонент')">▽ Фильтры</button><input id="sectionSearch" placeholder="⌕ Поиск в разделе..." oninput="filterBlocks()"><select><option>Все типы</option><option>Текст</option><option>Таблица</option><option>Предупреждение</option></select></div><table class="blocks"><thead><tr><th>№</th><th>Тип</th><th>Содержание</th><th>Стр.</th><th>Статус</th></tr></thead><tbody id="blocks"><tr><td>101</td><td>▧ Заголовок</td><td>4.3 Сезонное обслуживание</td><td>41</td><td><span class="smallok">OK</span></td></tr><tr><td>102</td><td>▤ Текст</td><td>Сезонное обслуживание выполняется...</td><td>41</td><td><span class="smallok">OK</span></td></tr><tr class="sel"><td>103</td><td>▦ Таблица</td><td>Перечень операций сезонного обслуживания</td><td>42</td><td><span class="smallok">OK</span></td></tr><tr><td>104</td><td>▤ Текст</td><td>Перед началом выполнения работ...</td><td>42</td><td><span class="smallok">OK</span></td></tr><tr><td>105</td><td>☷ Список</td><td>Проверить состояние оборудования...</td><td>43</td><td><span class="smallok">OK</span></td></tr><tr><td>106</td><td>⚠ Предупреждение</td><td>ВНИМАНИЕ! Работы выполнять после...</td><td>43</td><td><span class="smallok">OK</span></td></tr><tr><td>107</td><td>▤ Текст</td><td>Восстановить положение арматуры...</td><td>44</td><td><span class="smallok">OK</span></td></tr><tr><td>108</td><td>▧ Рисунок</td><td>Расположение контрольных точек</td><td>44</td><td><span class="smallok">OK</span></td></tr><tr><td>109</td><td>▤ Текст</td><td>Проверка результата после работ...</td><td>45</td><td><span class="need">NEED_REVIEW</span></td></tr></tbody></table><div class="pager"><span style="margin-right:auto">Показано 9 из 142 блоков</span><span class="pg">‹</span><span class="pg on">1</span><span class="pg">2</span><span class="pg">3</span><span class="pg">…</span><span class="pg">16</span><span class="pg">›</span></div></div>
+<div class="card"><div class="tabs"><button class="tab active" onclick="showTab(this,'preview')">Просмотр блока</button><button class="tab" onclick="showTab(this,'original')">Оригинальная страница</button><button class="tab" onclick="showTab(this,'related')">Связанные блоки</button></div><div class="preview" id="preview"><div class="ptitle">Таблица 4-3. Перечень операций сезонного обслуживания</div><table class="mini"><thead><tr><th>№</th><th>Операция</th><th>Состав работ</th><th>Интервал</th><th>Примечание</th></tr></thead><tbody><tr><td>1</td><td>Осмотр оборудования</td><td>Визуальный контроль состояния</td><td>Сезонное</td><td>Весна/осень</td></tr><tr><td>2</td><td>Проверка соединений</td><td>Контроль крепления и герметичности</td><td>Сезонное</td><td>По состоянию</td></tr><tr><td>3</td><td>Контроль арматуры</td><td>Проверка положения и маркировки</td><td>Сезонное</td><td>—</td></tr><tr><td>4</td><td>Проверка параметров</td><td>Сопоставление с критериями РЭ</td><td>IS300</td><td>Демо</td></tr></tbody></table><div class="meta"><div><b>ID блока:</b> ECRT_B000103</div><div><b>Статус:</b> OK</div><div><b>Тип:</b> table</div><div><b>Страница:</b> 42</div><div><b>Раздел:</b> 4.3</div><div><b>Версия парсера:</b> demo-1.0</div><div><b>Предыдущий:</b> ECRT_B000102</div><div><b>Следующий:</b> ECRT_B000104</div></div></div><div class="fakepage" id="original"><h4>Оригинальная страница · демонстрация</h4><p>Здесь в рабочей системе будет отображаться исходная страница документа с подсветкой координат выбранного блока.</p><div style="height:210px;border:1px dashed #aab9c6;background:white;display:flex;align-items:center;justify-content:center;color:#8498a8">Предпросмотр страницы 42</div></div><div class="fakepage" id="related"><h4>Связанные блоки</h4><p>← ECRT_B000102 · вводный текст</p><p>→ ECRT_B000104 · требования перед выполнением работ</p><p>↗ ECRT_B000221 · связанный критерий состояния</p><p>↗ ECRT_B000317 · ссылка на приложение</p></div></div></section>
+<section class="card bottom"><div class="bottomhead">Запросы к базе (пример)<button onclick="openChat()">▱ Открыть чат с ChatGPT</button></div><div class="queries"><button class="query" onclick="ask('Покажи все операции ТО для компрессора')">Покажи все операции ТО для компрессора</button><button class="query" onclick="ask('Собери все требования по смазке')">Собери все требования по смазке</button><button class="query" onclick="ask('Найди все интервалы, связанные с тормозами')">Найди все интервалы, связанные с тормозами</button><button class="query" onclick="ask('Сделай Excel по IS300: нормы расхода')">Сделай Excel по IS300: нормы расхода</button><button class="query" onclick="ask('Покажи противоречия между редакциями')">Покажи противоречия между редакциями</button><button class="query" onclick="ask('Собери раздел Техническое обслуживание')">Собери раздел «Техническое обслуживание»</button></div></section>
+</main>
+<div class="pageoverlay" id="pageOverlay"><div class="pagebox"><div class="pagebar"><h2 id="pageTitle">Документы</h2><button onclick="closePage()">← На главную</button></div><div id="pageContent" class="pgrid"></div></div></div>
+<div class="modal" id="modal"><div class="modalbox"><button class="close" onclick="closeModal()">Закрыть</button><h3>Демо-запрос к базе</h3><textarea id="prompt" placeholder="Например: покажи операции ТО компрессора"></textarea><button onclick="runDemo()">Выполнить запрос</button><div id="answer" style="margin-top:10px;font-size:10px;color:#50697e"></div></div></div><div class="toast" id="toast"></div>
+</div>
+<script>
+const scale=document.getElementById('scale');function fit(){const s=Math.min(window.innerWidth/1600,window.innerHeight/900);scale.style.transform='scale('+s+')';scale.style.marginLeft=Math.max(0,(window.innerWidth-1600*s)/2)+'px';}window.addEventListener('resize',fit);fit();
+function toast(t){const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1700)}
+const pageData={
+'Документы':['86 документов в базе','Руководство ТО и ТР ЭВС360 · v6.5','СТМГ190.90.00.000РЭ · Головная сцепка','СТМГ190.00.00.000РЭ · Сцепное устройство','РЭ дисков КСК · ред.2','РЭ стабилизатора · ред.5','РЭ компрессорного агрегата · v4','РЭ климатической установки · v3','РЭ дверей · v2'],
+'Поиск':['Смысловой поиск по 48 320 блокам','Операции ТО','Интервалы','Критерии состояния','Предупреждения','Компоненты','Ссылки и перечни','Неисправности'],
+'Компоненты':['4 312 компонентов','Компрессорный агрегат','Головная сцепка','Сцепное устройство','Тележка','Редуктор','Климатическая установка','Дверное оборудование','Тормозное оборудование'],
+'Техническое обслуживание':['6 870 операций ТО','IS50 · 614 операций','IS100 · 1 024 операции','IS300 · 2 183 операции','IS600 · 1 108 операций','IS700 · 422 операции','Сезонное обслуживание · 311 операций','Операции без ЭД · NEED_REVIEW'],
+'Требования':['4 210 требований','Безопасность','Подготовка к работам','Крепёжные соединения','Пневматические системы','Электрические цепи','Смазочные материалы','Критерии состояния'],
+'Неисправности':['2 980 записей','Пневматические утечки','Отказы датчиков','Перегрев','Повышенная вибрация','Ошибки связи','Механические повреждения','Несоответствие параметров'],
+'Таблицы':['2 140 таблиц','Перечни операций ТО','Нормы расхода материалов','Технические характеристики','Перечни компонентов','Интервалы обслуживания','Неисправности и способы устранения','Комплектность'],
+'Рисунки':['1 436 рисунков и схем','Общий вид','Схемы расположения','Электрические схемы','Пневматические схемы','Монтажные схемы','Узлы доступа','Контрольные точки'],
+'Сравнение версий':['Сравнение редакций','ECRT0000248608РЭ v6.4 → v6.5','СТМГ190.90 ред.3 → ред.4','Добавлено 148 блоков','Изменено 67 блоков','Удалено 14 блоков','Изменено 9 таблиц','3 изменения требуют проверки'],
+'Экспорт':['Доступные выгрузки','Excel · операции ТО','Excel · нормы расхода','JSONL · все блоки','SQLite · полный набор','Word · проект раздела','CSV · выборка','Отчёт о качестве разбора'],
+'Настройки':['Демонстрационные настройки','Parser Core: demo-1.0','Quality Gate: включён','NEED_REVIEW: включён','Сохранять исходный текст: да','Связи блоков: да','Версионность: да','Экспорт: JSON / SQLite / Excel']};
+function openPage(name){if(name==='Главная'){closePage();return}document.getElementById('pageTitle').textContent=name;const items=pageData[name]||['Демонстрационный раздел'];document.getElementById('pageContent').innerHTML=items.map((x,i)=>'<div class="pitem"><b>'+x+'</b><small>'+(i===0?'Сводка раздела':'Демонстрационные данные · 2026')+'</small></div>').join('');document.getElementById('pageOverlay').classList.add('show')}
+function closePage(){document.getElementById('pageOverlay').classList.remove('show');document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('active',x.dataset.page==='Главная'))}
+document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');openPage(b.dataset.page)});
+document.querySelectorAll('#docs tr').forEach(r=>r.onclick=()=>{document.querySelectorAll('#docs tr').forEach(x=>x.classList.remove('sel'));r.classList.add('sel');document.getElementById('docTitle').textContent='▣ '+r.dataset.doc+' · DEMO';toast('Открыт документ: '+r.dataset.doc)});
+document.querySelectorAll('#blocks tr').forEach(r=>r.onclick=()=>{document.querySelectorAll('#blocks tr').forEach(x=>x.classList.remove('sel'));r.classList.add('sel');toast('Выбран блок № '+r.cells[0].textContent)});
+function showTab(btn,id){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));btn.classList.add('active');['preview','original','related'].forEach(x=>document.getElementById(x).style.display=x===id?'block':'none')}
+function filterBlocks(){const q=document.getElementById('sectionSearch').value.toLowerCase();document.querySelectorAll('#blocks tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'table-row':'none')}
+function doSearch(){const q=document.getElementById('search').value.trim();if(!q){toast('Введите запрос для поиска');return}openPage('Поиск');document.getElementById('pageContent').innerHTML='<div class="pitem"><b>Результаты по запросу: '+q+'</b><small>Найдено 124 связанных блока</small></div><div class="pitem"><b>Операции ТО</b><small>47 совпадений</small></div><div class="pitem"><b>Требования</b><small>31 совпадение</small></div><div class="pitem"><b>Таблицы</b><small>12 совпадений</small></div>'}
+function openChat(){document.getElementById('modal').classList.add('show')}function closeModal(){document.getElementById('modal').classList.remove('show')}function ask(t){openChat();document.getElementById('prompt').value=t}function runDemo(){const q=document.getElementById('prompt').value||'запрос';document.getElementById('answer').innerHTML='<b>Демо-ответ:</b> по запросу «'+q+'» найдено 37 релевантных блоков в 8 документах. В рабочей версии здесь будет ответ ChatGPT с точными ссылками на источники.'}
+document.getElementById('search').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch()});
+</script>
+</body></html>
+'''
 
-BLOCKS = pd.DataFrame([
-    [101, "Заголовок", "5.3 Операции технического обслуживания", 54, "OK"],
-    [102, "Текст", "Периодическое техническое обслуживание выполняют...", 54, "OK"],
-    [103, "Таблица", "Таблица 5-3. Перечень операций ТО", 55, "OK"],
-    [104, "Текст", "Перед началом выполнения работ необходимо...", 56, "OK"],
-    [105, "Список", "Убедиться в отсутствии давления...", 56, "OK"],
-    [106, "Предупреждение", "ВНИМАНИЕ! Перед снятием крышки...", 56, "OK"],
-    [107, "Текст", "Проверить состояние фильтрующего элемента...", 57, "OK"],
-    [108, "Рисунок", "Рис. 5-12. Расположение фильтра", 57, "OK"],
-    [109, "Текст", "Заменить уплотнительные кольца...", 58, "NEED_REVIEW"],
-    [110, "Таблица", "Нормы расхода материалов", 58, "OK"],
-], columns=["№", "Тип", "Содержание", "Стр.", "Статус"])
-
-MAINT = pd.DataFrame([
-    ["Компрессор", "Проверка состояния воздушного фильтра", "IS50", "Осмотр, очистка при необходимости"],
-    ["Компрессор", "Замена фильтрующего элемента", "IS300", "Демонтаж, установка нового элемента"],
-    ["Тормозное оборудование", "Проверка герметичности соединений", "IS100", "Визуальный осмотр, устранение утечек"],
-    ["Компрессор", "Проверка крепления", "IS300", "Контроль момента затяжки"],
-    ["Сцепное устройство", "Контроль состояния механических соединений", "IS600", "Осмотр и проверка состояния"],
-    ["Оборудование тележки", "Контроль элементов ходовой части", "IS600", "Осмотр, контроль состояния"],
-], columns=["Компонент", "Операция", "Интервал", "Состав работ"])
-
-REQS = pd.DataFrame([
-    ["Безопасность", "Работы выполнять после снятия напряжения и подтверждения безопасного состояния", "ЭВС360", "Высокий"],
-    ["Пневматика", "Перед разъединением пневматических соединений сбросить давление", "Тормозное оборудование", "Высокий"],
-    ["Крепёж", "После установки выполнить контроль крепления", "Компрессор", "Средний"],
-    ["Смазка", "Применять материал, указанный в эксплуатационной документации", "Оборудование тележки", "Средний"],
-    ["Проверка", "После замены подтвердить результат выполненных работ", "Общие требования", "Высокий"],
-], columns=["Тема", "Требование", "Объект", "Важность"])
-
-FAULTS = pd.DataFrame([
-    ["Компрессор", "Недостаточная производительность", "Засорение фильтра", "Проверить/очистить фильтр"],
-    ["Дверная система", "Дверь не закрывается", "Препятствие или нарушение регулировки", "Осмотр и диагностика"],
-    ["Климатическая установка", "Недостаточное охлаждение", "Загрязнение теплообменника", "Проверить состояние"],
-    ["Сцепное устройство", "Неполное сцепление", "Механическое препятствие", "Осмотр зоны сцепления"],
-], columns=["Компонент", "Неисправность", "Возможная причина", "Действие"])
-
-if "page" not in st.session_state:
-    st.session_state.page = "Главная"
-if "selected_doc" not in st.session_state:
-    st.session_state.selected_doc = 0
-
-# -------------------- SIDEBAR --------------------
-with st.sidebar:
-    st.markdown("### ⚙️ ТехДок База")
-    st.caption("Структурированная техническая документация")
-    st.markdown("---")
-    menu = [
-        ("🏠", "Главная"), ("📄", "Документы"), ("🔎", "Поиск"),
-        ("🧩", "Компоненты"), ("🔧", "Техническое обслуживание"),
-        ("📋", "Требования"), ("⚠️", "Неисправности"), ("▦", "Таблицы"),
-        ("🖼️", "Рисунки"), ("◴", "Сравнение версий"), ("⬇️", "Экспорт"), ("⚙", "Настройки")
-    ]
-    for ico, label in menu:
-        if st.button(f"{ico}  {label}", key=f"nav_{label}"):
-            st.session_state.page = label
-            st.rerun()
-    st.markdown("---")
-    st.caption("Использование")
-    st.progress(0.423)
-    st.caption("42.3 ГБ из 100 ГБ")
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.caption("Документов: 86")
-    st.caption("Обновлено: 12.09.2026 14:32")
-
-# -------------------- TOP BAR --------------------
-left, middle, right = st.columns([6.5, 2, 1.2])
-with left:
-    global_search = st.text_input("Поиск", placeholder="Поиск по всей документации... например: операции ТО компрессора", label_visibility="collapsed")
-with middle:
-    if st.button("💬 Задать вопрос в ChatGPT", use_container_width=True):
-        st.session_state.page = "AI-запрос"
-        st.rerun()
-with right:
-    st.markdown('<span class="demo-badge">ДЕМО · 2026</span>', unsafe_allow_html=True)
-
-if global_search:
-    st.session_state.page = "Поиск"
-
-page = st.session_state.page
-
-# -------------------- HELPERS --------------------
-def title(text, sub=None):
-    st.markdown(f'<div class="top-title">{text}</div>', unsafe_allow_html=True)
-    if sub:
-        st.markdown(f'<div class="top-sub">{sub}</div>', unsafe_allow_html=True)
-
-
-def show_doc_detail(idx):
-    d = DOC_DF.iloc[idx]
-    title(f'{d["Документ"]} · {d["Обозначение"]}', f'Версия {d["Версия"]} · {d["Страниц"]} стр. · демонстрационные результаты разбора')
-    m1,m2,m3,m4,m5 = st.columns(5)
-    m1.metric("Страниц", int(d["Страниц"]))
-    m2.metric("Блоков", f'{int(d["Блоков"]):,}'.replace(","," "))
-    m3.metric("Таблиц", int(d["Таблиц"]))
-    m4.metric("NEED_REVIEW", "8")
-    m5.metric("Статус", d["Статус"])
-    st.markdown("### Структура документа")
-    c1,c2,c3 = st.columns([.85,1.25,1.25])
-    with c1:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown('<div class="tree-line">▸ 1. Общие сведения</div>', unsafe_allow_html=True)
-        st.markdown('<div class="tree-line">▸ 2. Технические характеристики</div>', unsafe_allow_html=True)
-        st.markdown('<div class="tree-line">▸ 3. Конструкция и принцип работы</div>', unsafe_allow_html=True)
-        st.markdown('<div class="tree-line">▸ 4. Эксплуатация</div>', unsafe_allow_html=True)
-        st.markdown('<div class="tree-line">⌄ 5. Техническое обслуживание</div>', unsafe_allow_html=True)
-        st.markdown('<div class="tree-line">&nbsp;&nbsp;&nbsp;5.1 Общие указания</div>', unsafe_allow_html=True)
-        st.markdown('<div class="tree-line">&nbsp;&nbsp;&nbsp;5.2 Перечень работ</div>', unsafe_allow_html=True)
-        st.markdown('<div class="tree-line sel">&nbsp;&nbsp;&nbsp;5.3 Операции ТО</div>', unsafe_allow_html=True)
-        st.markdown('<div class="tree-line">&nbsp;&nbsp;&nbsp;5.4 Расходные материалы</div>', unsafe_allow_html=True)
-        st.markdown('<div class="tree-line">▸ 6. Неисправности</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    with c2:
-        st.markdown("**Блоки раздела 5.3**")
-        selected = st.dataframe(BLOCKS, hide_index=True, use_container_width=True, height=355, on_select="rerun", selection_mode="single-row", key=f"blocks_{idx}")
-        row = selected.selection.rows[0] if selected.selection.rows else 2
-        selected_block = BLOCKS.iloc[row]
-    with c3:
-        t1,t2,t3 = st.tabs(["Просмотр блока", "Оригинальная страница", "Связанные блоки"])
-        with t1:
-            st.markdown(f'**{selected_block["Тип"]} · блок {selected_block["№"]}**')
-            if selected_block["Тип"] == "Таблица":
-                st.dataframe(MAINT.iloc[:5], hide_index=True, use_container_width=True)
-            else:
-                st.info(selected_block["Содержание"])
-            st.caption(f'Страница: {selected_block["Стр."]} · Статус: {selected_block["Статус"]} · ID: DOC_001_B{int(selected_block["№"]):06d}')
-        with t2:
-            st.markdown("#### Страница 55 · демонстрационный просмотр")
-            st.markdown("**5.3 Операции технического обслуживания**")
-            st.write("Периодическое техническое обслуживание выполняют в соответствии с установленным интервалом и применимой документацией.")
-            st.dataframe(MAINT.iloc[:4], hide_index=True, use_container_width=True)
-            st.caption("В реальной системе здесь будет отображаться исходная страница или привязанный фрагмент.")
-        with t3:
-            st.dataframe(pd.DataFrame([
-                [102,"Предыдущий","Периодическое техническое обслуживание..."],
-                [103,"Текущий","Таблица 5-3. Перечень операций ТО"],
-                [104,"Следующий","Перед началом выполнения работ..."],
-            ], columns=["Блок","Связь","Текст"]), hide_index=True, use_container_width=True)
-
-# -------------------- PAGES --------------------
-if page == "Главная":
-    title("ТехДок База", "Демонстрационный портал структурированной технической документации")
-    a,b,c,d,e,f = st.columns(6)
-    a.metric("Документов", "86", "+12")
-    b.metric("Всего блоков", "48 320", "+3 420")
-    c.metric("Таблиц", "2 140", "+217")
-    d.metric("Операций ТО", "6 870", "+503")
-    e.metric("Компонентов", "4 312")
-    f.metric("Требуют проверки", "37", "-8")
-    st.write("")
-    l,r1,r2 = st.columns([1.65,.95,.85])
-    with l:
-        st.markdown("#### Последние документы")
-        recent = DOC_DF.iloc[:6].copy()
-        evt = st.dataframe(recent, hide_index=True, use_container_width=True, height=260, on_select="rerun", selection_mode="single-row", key="home_docs")
-        if evt.selection.rows:
-            st.session_state.selected_doc = int(evt.selection.rows[0])
-    with r1:
-        st.markdown("#### Распределение блоков")
-        for name,val in [("Текстовые блоки",62),("Таблицы",15),("Списки",8),("Заголовки",6),("Рисунки",4),("Примечания",3),("Предупреждения",1),("Другое",1)]:
-            st.caption(f"{name} · {val}%")
-            st.progress(val/100)
-    with r2:
-        st.markdown("#### Типы информации")
-        for name,val,num in [("Операции ТО",.84,"6 870"),("Требования",.62,"4 210"),("Тех. характеристики",.55,"3 540"),("Неисправности",.44,"2 980"),("Компоненты",.67,"4 312"),("Интервалы",.54,"3 860")]:
-            st.caption(f"{name} · {num}")
-            st.progress(val)
-    st.write("")
-    st.markdown("#### Просмотр выбранного документа")
-    show_doc_detail(st.session_state.selected_doc)
-    st.write("")
-    st.markdown("#### Запросы к базе · примеры")
-    qcols = st.columns(6)
-    queries = ["Покажи все операции ТО компрессора","Собери требования по смазке","Найди интервалы по тормозам","Сделай Excel по IS300","Покажи противоречия редакций","Собери раздел ТО"]
-    for col,q in zip(qcols,queries):
-        with col:
-            if st.button(q, use_container_width=True, key=f"q_{q}"):
-                st.session_state.demo_query = q
-                st.session_state.page = "AI-запрос"
-                st.rerun()
-
-elif page == "Документы":
-    title("Документы", "86 документов в демонстрационной базе · показаны последние 12")
-    c1,c2,c3 = st.columns([2,1,1])
-    with c1: flt = st.text_input("Фильтр по названию или обозначению")
-    with c2: status = st.selectbox("Статус", ["Все","Обработан","Требует проверки","Обработка"])
-    with c3: dtype = st.selectbox("Тип", ["Все","РЭ","Руководство","Таблица интервалов"])
-    view_df = DOC_DF.copy()
-    if flt:
-        mask = view_df["Документ"].str.contains(flt, case=False) | view_df["Обозначение"].str.contains(flt, case=False)
-        view_df = view_df[mask]
-    if status != "Все": view_df = view_df[view_df["Статус"]==status]
-    evt = st.dataframe(view_df, hide_index=True, use_container_width=True, height=400, on_select="rerun", selection_mode="single-row", key="docs_all")
-    if evt.selection.rows:
-        chosen_index = view_df.index[evt.selection.rows[0]]
-        st.session_state.selected_doc = int(chosen_index)
-    if st.button("Открыть выбранный документ"):
-        st.session_state.page = "Документ"
-        st.rerun()
-
-elif page == "Документ":
-    show_doc_detail(st.session_state.selected_doc)
-    if st.button("← К списку документов"):
-        st.session_state.page = "Документы"; st.rerun()
-
-elif page == "Поиск":
-    title("Поиск по всей базе", "Поиск работает по демонстрационному набору")
-    q = global_search or st.text_input("Введите запрос", value="компрессор")
-    scope = st.multiselect("Искать в", ["Документах","Операциях ТО","Требованиях","Неисправностях","Таблицах"], default=["Документах","Операциях ТО","Требованиях"])
-    st.markdown("### Результаты")
-    if q:
-        docres = DOC_DF[DOC_DF.astype(str).apply(lambda x: x.str.contains(q, case=False).any(), axis=1)]
-        opres = MAINT[MAINT.astype(str).apply(lambda x: x.str.contains(q, case=False).any(), axis=1)]
-        if len(docres): st.dataframe(docres, hide_index=True, use_container_width=True)
-        if len(opres): st.dataframe(opres, hide_index=True, use_container_width=True)
-        if not len(docres) and not len(opres): st.info("Для демонстрации показываем смысловой результат: найдено 14 связанных блоков в 4 документах.")
-
-elif page == "Компоненты":
-    title("Компоненты", "Демонстрационное дерево обслуживаемых компонентов")
-    comps = pd.DataFrame([
-        ["GC-20-00","Кузов и интерьер",82,1240],["GC-21-10","Дверное оборудование",18,416],["GC-22-10","Климатическое оборудование",24,528],["HE-10-00","Компрессорное оборудование",16,387],["BR-20-00","Тормозное оборудование",31,864],["BG-30-00","Оборудование тележки",57,1436],["CP-10-00","Сцепные устройства",22,612]
-    ], columns=["SNS","Группа компонентов","Компонентов","Связанных блоков"])
-    st.dataframe(comps, hide_index=True, use_container_width=True)
-    selected = st.selectbox("Выберите группу", comps["Группа компонентов"].tolist())
-    st.success(f"{selected}: найдено 24 операции ТО, 11 требований, 6 таблиц и 3 предупреждения. Данные демонстрационные.")
-
-elif page == "Техническое обслуживание":
-    title("Техническое обслуживание", "Операции ТО, интервалы, назначение и состав работ")
-    c1,c2 = st.columns(2)
-    with c1: interval = st.multiselect("Интервал", sorted(MAINT["Интервал"].unique()), default=[])
-    with c2: component = st.selectbox("Компонент", ["Все"] + sorted(MAINT["Компонент"].unique()))
-    df = MAINT.copy()
-    if interval: df=df[df["Интервал"].isin(interval)]
-    if component != "Все": df=df[df["Компонент"]==component]
-    st.dataframe(df, hide_index=True, use_container_width=True)
-    st.caption("В реальной системе отсюда можно формировать План ТО, Excel и выборки по компонентам.")
-
-elif page == "Требования":
-    title("Требования", "Требования, критерии, предупреждения и ограничения")
-    topic = st.multiselect("Тема", REQS["Тема"].tolist())
-    df=REQS if not topic else REQS[REQS["Тема"].isin(topic)]
-    st.dataframe(df, hide_index=True, use_container_width=True)
-
-elif page == "Неисправности":
-    title("Неисправности", "Поиск неисправностей, причин и связанных действий")
-    st.dataframe(FAULTS, hide_index=True, use_container_width=True)
-
-elif page == "Таблицы":
-    title("Таблицы", "2 140 распознанных таблиц · демонстрационная выборка")
-    tbl = pd.DataFrame([
-        ["ECRT0000248608РЭ","5-3","Операции ТО",55,5,"OK"],["СТМГ190.90.00.000РЭ","4-1","Технические характеристики",42,12,"OK"],["DEMO-COMP-01","7-2","Нормы расхода материалов",118,18,"OK"],["DEMO-BRAKE-01","6-4","Перечень неисправностей",203,24,"NEED_REVIEW"],["ECPT0000001768","1","Интервалы ТО",14,32,"OK"]
-    ], columns=["Документ","Таблица","Название","Страница","Строк","Статус"])
-    st.dataframe(tbl, hide_index=True, use_container_width=True)
-
-elif page == "Рисунки":
-    title("Рисунки", "Демонстрационный каталог рисунков и схем")
-    cols=st.columns(3)
-    figs=[("Рис. 5-12","Расположение фильтра","DEMO-COMP-01"),("Рис. 4-8","Сцепной механизм","СТМГ190.90.00.000РЭ"),("Рис. 6-3","Размещение оборудования тележки","DEMO-BOGIE-01")]
-    for col,(n,t,d) in zip(cols,figs):
-        with col:
-            st.markdown(f'<div class="card"><div style="height:150px;background:linear-gradient(135deg,#dbe8f3,#f6f9fb);display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:46px">⌗</div><b>{n}</b><br><span class="small">{t}<br>{d}</span></div>', unsafe_allow_html=True)
-
-elif page == "Сравнение версий":
-    title("Сравнение версий", "Пример сравнения редакций документа")
-    c1,c2 = st.columns(2)
-    with c1: st.selectbox("Базовая версия", ["ECRT0000248608РЭ v6.4","СТМГ190.90.00.000РЭ ред.3"])
-    with c2: st.selectbox("Новая версия", ["ECRT0000248608РЭ v6.5","СТМГ190.90.00.000РЭ ред.4"])
-    st.metric("Изменено блоков", "37")
-    diff=pd.DataFrame([["4.4.3","Изменено","Уточнена логика устранения несоответствия"],["6.2","Изменено","Уточнена проверка после выполнения работ"],["Приложение Б","Добавлено","Уточнена ссылка на порядок выполнения операций"],["Таблица интервалов","Без изменений","Содержательная часть не изменилась"]], columns=["Раздел","Статус","Изменение"])
-    st.dataframe(diff, hide_index=True, use_container_width=True)
-
-elif page == "Экспорт":
-    title("Экспорт", "Как будут собираться выходные файлы из одной базы")
-    fmt=st.radio("Формат", ["Excel","Word","CSV","JSON"], horizontal=True)
-    dataset=st.selectbox("Состав данных", ["Операции ТО","Требования","Интервалы","Компоненты","NEED_REVIEW","Выбранный документ"])
-    cols=st.multiselect("Поля", ["Документ","Компонент","Операция","Интервал","Назначение","Состав работ","Источник","Страница"], default=["Документ","Компонент","Операция","Интервал","Источник"])
-    st.info(f"Демо: будет сформирован {fmt} · набор «{dataset}» · полей: {len(cols)}")
-    st.button("Сформировать демонстрационный экспорт")
-
-elif page == "Настройки":
-    title("Настройки", "Будущие настройки Parser Core и смыслового слоя")
-    st.toggle("Сохранять исходный текст блока", value=True, disabled=True)
-    st.toggle("Помечать сомнительные блоки NEED_REVIEW", value=True, disabled=True)
-    st.toggle("Контроль полноты документа", value=True, disabled=True)
-    st.slider("Порог уверенности", 0,100,85, disabled=True)
-    st.caption("На демонстрационном этапе настройки не изменяют данные.")
-
-elif page == "AI-запрос":
-    title("Запрос к базе", "Демонстрация будущей работы через ChatGPT / Work")
-    default_q = st.session_state.get("demo_query", "Покажи все операции ТО для компрессора и интервалы")
-    q=st.text_area("Ваш запрос", value=default_q, height=90)
-    if st.button("Выполнить демонстрационный запрос", type="primary"):
-        st.markdown("### Ответ")
-        st.write("Найдено 18 связанных блоков в 4 документах. Ниже показана демонстрационная выборка операций.")
-        st.dataframe(MAINT[MAINT["Компонент"].str.contains("Компрессор")], hide_index=True, use_container_width=True)
-        st.caption("В рабочей версии ответ будет собираться из фактически разобранной базы с привязкой к источникам.")
-
-else:
-    title("Раздел")
-    st.info("Демонстрационный раздел.")
+components.html(APP, height=900, scrolling=False)
