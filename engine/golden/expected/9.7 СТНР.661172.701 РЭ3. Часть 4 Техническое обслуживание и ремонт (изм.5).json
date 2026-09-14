@@ -1,0 +1,16 @@
+{
+  "document_code": "СТНР.661172.701 РЭ3",
+  "operations": [
+    {
+      "contains": "ТО-2 и дезинфекция бака",
+      "supplier_component_contains": "Экотол",
+      "regulating_document_contains": "КШМС.667410.008-080 РЭ",
+      "source_point_contains": "6.6"
+    },
+    {
+      "contains": "Замена сменных частей центровочного устройства",
+      "supplier_component_contains": "Сцепка CA-3 Scharfenberg 520.011",
+      "source_point_contains": "5.2.5"
+    }
+  ]
+}
