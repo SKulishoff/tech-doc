@@ -6,7 +6,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .core import ComponentRecord, ReviewStatus, TableKind, classify_table, extract_periodicity_rows, match_component
-from .extract import extract_criterion_facts, extract_material_facts, extract_operation_candidates
+from .extract import (
+    extract_criterion_facts, extract_material_facts, extract_operation_candidates,
+    extract_prose_criterion_facts, extract_prose_operation_candidates,
+)
 from .pipeline import MaintenancePipeline, secure_temp_copy
 from .storage import connect, create_ingest_run, insert_criterion, insert_material, insert_operation, register_document
 
@@ -18,6 +21,7 @@ class IngestOutcome:
     selected_pages: list[int] = field(default_factory=list)
     ranges: list[tuple[int,int]] = field(default_factory=list)
     operations: int = 0
+    prose_operations: int = 0
     materials: int = 0
     criteria: int = 0
     periodicities: int = 0
@@ -56,6 +60,17 @@ def _completed_same_hash(con: sqlite3.Connection, sha256: str) -> int | None:
     return int(row["id"]) if row else None
 
 
+def _apply_component_match(op, components: list[ComponentRecord], aliases: dict[str,str]):
+    if not op.supplier_component_name or not components:
+        return op
+    match=match_component(op.supplier_component_name,components,aliases)
+    if match.code:
+        op=op.model_copy(update={"component_code":match.code,"component_name":match.name,"confidence":min(0.99,max(op.confidence,match.score/100))})
+    if match.needs_review:
+        op=op.model_copy(update={"review_status":ReviewStatus.NEED_REVIEW})
+    return op
+
+
 def ingest_pdf(
     source_path: str|Path,
     *,
@@ -76,14 +91,14 @@ def ingest_pdf(
             completed=_completed_same_hash(con,scan.sha256)
             if completed:
                 return IngestOutcome(document_id=completed,document_state="duplicate",notes=["identical completed SHA already ingested"])
-            # register_document may return duplicate if a previous attempt failed; reuse its row rather than creating another.
             existing=con.execute("SELECT id FROM documents WHERE sha256=?",(scan.sha256,)).fetchone()
             if existing:
                 document_id=int(existing["id"]); state="retry"
             else:
                 document_id,state=register_document(con,code=document_code,sha256=scan.sha256,filename=Path(source_path).name,title=title,revision=revision)
             run_id=create_ingest_run(con,document_id,"STARTED",scan.candidate_pages)
-            needs_ocr=any(s.needs_ocr and s.page in set(scan.candidate_pages) for s in scan.signals)
+            selected_set=set(scan.candidate_pages)
+            needs_ocr=any(s.needs_ocr and s.page in selected_set for s in scan.signals)
             outcome=IngestOutcome(document_id=document_id,document_state=state,selected_pages=scan.candidate_pages,ranges=scan.ranges,needs_ocr=needs_ocr)
             if not scan.ranges:
                 con.execute("UPDATE ingest_runs SET status='NEED_REVIEW',notes=? WHERE id=?",("no maintenance pages selected",run_id)); con.commit()
@@ -101,26 +116,28 @@ def ingest_pdf(
                             outcome.periodicities+=1
                     if kind in {TableKind.OPERATION_MATRIX,TableKind.OPERATION_LIST}:
                         for op in extract_operation_candidates(table.rows,document_code=document_code,page=page,table_name=table_name):
-                            if op.supplier_component_name and components:
-                                match=match_component(op.supplier_component_name,components,aliases)
-                                if match.code:
-                                    op=op.model_copy(update={"component_code":match.code,"component_name":match.name,"confidence":min(0.99,max(op.confidence,match.score/100))})
-                                if match.needs_review:
-                                    op=op.model_copy(update={"review_status":ReviewStatus.NEED_REVIEW})
+                            op=_apply_component_match(op,components,aliases)
                             op=op.model_copy(update={"source":op.source.model_copy(update={"source_hash":scan.sha256})})
                             insert_operation(con,document_id,op); outcome.operations+=1
                     if kind==TableKind.MATERIALS:
                         for fact in extract_material_facts(table.rows,document_code=document_code,page=page,table_name=table_name):
                             fact=fact.model_copy(update={"source":fact.source.model_copy(update={"source_hash":scan.sha256})}); insert_material(con,document_id,fact); outcome.materials+=1
-                    # Criteria can occur in dedicated tables and also in operation tables.
                     if kind in {TableKind.CRITERIA,TableKind.OPERATION_MATRIX,TableKind.OPERATION_LIST}:
                         for fact in extract_criterion_facts(table.rows,document_code=document_code,page=page,table_name=table_name):
                             fact=fact.model_copy(update={"source":fact.source.model_copy(update={"source_hash":scan.sha256})}); insert_criterion(con,document_id,fact); outcome.criteria+=1
+
+                # Prose extraction is deliberately conservative: all records remain NEED_REVIEW.
+                for block in parsed.text_blocks:
+                    page=block.page_no or parsed.start_page
+                    for op in extract_prose_operation_candidates(block.text,document_code=document_code,page=page,label=block.label):
+                        op=op.model_copy(update={"source":op.source.model_copy(update={"source_hash":scan.sha256})})
+                        insert_operation(con,document_id,op); outcome.operations+=1; outcome.prose_operations+=1
+                    for fact in extract_prose_criterion_facts(block.text,document_code=document_code,page=page):
+                        fact=fact.model_copy(update={"source":fact.source.model_copy(update={"source_hash":scan.sha256})}); insert_criterion(con,document_id,fact); outcome.criteria+=1
             con.commit()
             con.execute("UPDATE ingest_runs SET status='COMPLETED',notes=? WHERE id=?",(json.dumps(outcome.__dict__,ensure_ascii=False,default=str),run_id)); con.commit()
             return outcome
     except Exception as exc:
-        # Preserve only diagnostic metadata, never source contents.
         try:
             if 'run_id' in locals():
                 con.execute("UPDATE ingest_runs SET status='FAILED',notes=? WHERE id=?",(f"{type(exc).__name__}: {exc}",run_id)); con.commit()
