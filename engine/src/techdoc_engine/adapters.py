@@ -20,11 +20,19 @@ class PyPdfAdapter:
 
 
 @dataclass
+class ParsedTable:
+    table_index: int
+    page_no: int | None
+    rows: list[list[object]]
+    item: Any
+
+
+@dataclass
 class ParsedRange:
     start_page: int
     end_page: int
     document: Any
-    tables: list[list[list[object]]]
+    tables: list[ParsedTable]
 
 
 class DoclingAdapter:
@@ -53,11 +61,12 @@ class DoclingAdapter:
     def parse_range(self, path: str | Path, start_page: int, end_page: int) -> ParsedRange:
         converter = self._converter()
         result = converter.convert(str(path), page_range=(start_page, end_page))
-        tables: list[list[list[object]]] = []
-        for table in result.document.tables:
+        tables: list[ParsedTable] = []
+        for idx, table in enumerate(result.document.tables, start=1):
             df = table.export_to_dataframe(doc=result.document)
             rows = [list(df.columns)] + df.astype(object).where(df.notna(), None).values.tolist()
-            tables.append(rows)
+            page_no = table.prov[0].page_no if getattr(table, "prov", None) else None
+            tables.append(ParsedTable(idx, page_no, rows, table))
         return ParsedRange(start_page, end_page, result.document, tables)
 
 
