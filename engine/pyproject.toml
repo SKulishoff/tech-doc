@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "techdoc-engine"
+version = "0.1.0"
+description = "Offline maintenance-data extraction from supplier technical documents"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+  "docling-slim[format-pdf,models-local]==2.126.0",
+  "pypdf==6.18.1",
+  "pydantic==2.13.5",
+  "rapidfuzz==3.14.6",
+  "python-calamine==0.8.2",
+  "openpyxl==3.1.5",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=9,<10"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
