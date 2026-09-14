@@ -28,11 +28,20 @@ class ParsedTable:
 
 
 @dataclass
+class ParsedTextBlock:
+    page_no: int | None
+    label: str | None
+    text: str
+    item: Any
+
+
+@dataclass
 class ParsedRange:
     start_page: int
     end_page: int
     document: Any
     tables: list[ParsedTable]
+    text_blocks: list[ParsedTextBlock]
 
 
 class DoclingAdapter:
@@ -67,7 +76,21 @@ class DoclingAdapter:
             rows = [list(df.columns)] + df.astype(object).where(df.notna(), None).values.tolist()
             page_no = table.prov[0].page_no if getattr(table, "prov", None) else None
             tables.append(ParsedTable(idx, page_no, rows, table))
-        return ParsedRange(start_page, end_page, result.document, tables)
+
+        text_blocks: list[ParsedTextBlock] = []
+        for item, _level in result.document.iterate_items():
+            # Tables are handled through structured cells above; avoid a second prose copy.
+            if item.__class__.__name__ == "TableItem":
+                continue
+            text = getattr(item, "text", None)
+            if not isinstance(text, str) or not text.strip():
+                continue
+            prov = getattr(item, "prov", None)
+            page_no = prov[0].page_no if prov else None
+            label_obj = getattr(item, "label", None)
+            label = getattr(label_obj, "value", None) or (str(label_obj) if label_obj is not None else None)
+            text_blocks.append(ParsedTextBlock(page_no, label, " ".join(text.split()), item))
+        return ParsedRange(start_page, end_page, result.document, tables, text_blocks)
 
 
 class ExcelAdapter:
