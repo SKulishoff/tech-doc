@@ -8,6 +8,7 @@ from techdoc_engine.core import (
     classify_table, detect_matrix_columns, extract_periodicity_rows, marks_from_row,
     match_component, pages_to_ranges, parse_interval, score_page,
 )
+from techdoc_engine.extract import extract_operation_candidates, extract_prose_operation_candidates
 from techdoc_engine.pipeline import secure_temp_copy
 from techdoc_engine.storage import PLAN_HEADERS, connect, export_plan_xlsx, insert_operation, register_document
 
@@ -29,13 +30,49 @@ def test_interval_parser():
 
 
 def test_periodicity_and_matrix_tables():
-    rows=[["Вид ТОиР","Межремонтный пробег, км"],["IS100 (осмотр)","12 500 км ± 20 %"],["IS540","600 000 км ± 20 %"]]
+    rows=[["Вид ТОиР","Межремонтный пробег, км"],["IS100 (осмотр)","12 500 ± 20 %"],["IS540","600 000 ± 20 %"]]
     assert classify_table(rows)==TableKind.PERIODICITY
-    got={k:v.value for k,v in extract_periodicity_rows(rows).items()}; assert got=={"IS100":12500,"IS540":600000}
+    got=extract_periodicity_rows(rows); assert {k:v.value for k,v in got.items()}=={"IS100":12500,"IS540":600000}
+    assert got["IS100"].unit=="km" and got["IS540"].unit=="km"
     header=[["Элемент","Работа по техническому обслуживанию","IS100","IS200","IS540","IS700"]]
     cols=detect_matrix_columns(header); assert cols=={"IS100":2,"IS200":3,"IS540":4,"IS700":5}
     marks=marks_from_row(["Фильтр","Проверить","+","-","Х",""],cols)
     assert marks.IS100 and marks.IS540 and not marks.IS200 and not marks.IS700
+
+
+def test_prs_matrix_shape_and_calendar_intervals():
+    rows=[
+        ["Наименование работы и объекта ТО","IS100","IS200","IS510","IS520","IS530","IS540","IS600","IS700","Номер пункта РЭ","Трудоемкость, чел.-ч"],
+        ["Осмотр металлических деталей","+","+","+","+","+","+","+","+","4.4.1","0,1"],
+        ["Контроль состояния резинометаллических шарниров","-","-","-","-","-","-","+","+","4.4.4","1"],
+        ["Ревизия вала с опорами и рычагами","Не более 5 лет","","","","","","","","4.4.5","2"],
+    ]
+    assert classify_table(rows)==TableKind.OPERATION_MATRIX
+    ops=extract_operation_candidates(rows,document_code="ПРС.107.10.000 РЭ",page=23,table_name="Таблица 4")
+    assert len(ops)==3
+    assert ops[0].marks.enabled()==["IS100","IS200","IS510","IS520","IS530","IS540","IS600","IS700"]
+    assert ops[1].marks.enabled()==["IS600","IS700"]
+    assert ops[2].interval and ops[2].interval.value==5 and ops[2].interval.unit=="year" and ops[2].interval.qualifier=="max"
+    assert ops[0].source.section=="4.4.1"
+
+
+def test_rtgn_operation_table_does_not_invent_is_marks():
+    rows=[
+        ["Вид обслуживания","Тип работ","Контролируемые параметры","Периодичность, км"],
+        ["Технический осмотр","Общий визуальный контроль","см. пункт 3.3.2","12 500 ± 10 %"],
+        ["","Контроль износа","см. пункт 3.3.6","300 000 ± 20 %"],
+    ]
+    ops=extract_operation_candidates(rows,document_code="РТГН.09.64025.03 РЭ ЭВС",page=34,table_name="Таблица 6")
+    assert [o.operation_name for o in ops]==["Общий визуальный контроль","Контроль износа"]
+    assert ops[0].interval and ops[0].interval.value==12500 and ops[0].interval.unit=="km" and ops[0].interval.tolerance_percent==10
+    assert ops[1].interval and ops[1].interval.value==300000 and ops[1].interval.unit=="km"
+    assert ops[0].marks.enabled()==[] and ops[1].marks.enabled()==[]
+
+
+def test_prose_candidate_stays_review_only():
+    ops=extract_prose_operation_candidates("12.5.4.3 Произвести проверку крепления узлов и деталей АКВ.",document_code="ЭС104 РЭ8",page=240)
+    assert len(ops)==1 and ops[0].source.section=="12.5.4.3" and ops[0].review_status==ReviewStatus.NEED_REVIEW
+    assert "проверку крепления" in ops[0].operation_name
 
 
 def test_component_matching_is_conservative():
