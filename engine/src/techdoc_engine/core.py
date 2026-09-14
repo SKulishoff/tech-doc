@@ -96,15 +96,13 @@ def score_page(text: str, page: int, ocr_text_threshold: int = 80) -> PageSignal
     compact = " ".join((text or "").split())
     score = 0; reasons: list[str] = []
     for name, pattern, weight in SCAN_RULES:
-        if pattern.search(compact):
-            score += weight; reasons.append(name)
+        if pattern.search(compact): score += weight; reasons.append(name)
     return PageSignal(page=page, score=score, reasons=reasons, text_length=len(compact), needs_ocr=len(compact) < ocr_text_threshold)
 
 
 def choose_candidate_pages(page_texts: Iterable[str], threshold: int = 5, neighbor_radius: int = 1) -> tuple[list[PageSignal], list[int]]:
     signals = [score_page(text, i + 1) for i, text in enumerate(page_texts)]
-    chosen = {s.page for s in signals if s.score >= threshold}
-    expanded = set(chosen)
+    chosen = {s.page for s in signals if s.score >= threshold}; expanded = set(chosen)
     for page in chosen:
         for delta in range(-neighbor_radius, neighbor_radius + 1):
             p = page + delta
@@ -177,12 +175,22 @@ def classify_table(rows: Sequence[Sequence[object]]) -> TableKind:
 
 def extract_periodicity_rows(rows: Sequence[Sequence[object]]) -> dict[str, IntervalRule]:
     result: dict[str, IntervalRule] = {}
+    header_text = " | ".join(_norm(cell) for row in rows[:2] for cell in row)
+    header_unit: str | None = None
+    if re.search(r"\bкм\b|километр", header_text): header_unit = "km"
+    elif re.search(r"\bсут|дн", header_text): header_unit = "day"
+    elif "месяц" in header_text: header_unit = "month"
+    elif re.search(r"\bлет\b|год", header_text): header_unit = "year"
+    elif "цикл" in header_text: header_unit = "cycle"
+    elif "час" in header_text: header_unit = "hour"
     for row in rows:
         mtype = canonical_is(" | ".join(str(c or "") for c in row))
         if not mtype: continue
         for cell in row:
             parsed = parse_interval(str(cell or ""))
             if parsed and parsed.value is not None:
+                if parsed.unit == "unknown" and header_unit:
+                    parsed = parsed.model_copy(update={"unit": header_unit})
                 result[mtype] = parsed; break
     return result
 
