@@ -9,6 +9,7 @@ from openpyxl import Workbook
 
 from . import MAINTENANCE_TYPES
 from .core import MaintenanceOperationCandidate
+from .facts import CriterionFact, MaterialFact
 
 SCHEMA = """
 PRAGMA foreign_keys=ON;
@@ -33,6 +34,14 @@ CREATE TABLE IF NOT EXISTS matrix_marks(
  operation_id INTEGER NOT NULL REFERENCES operations(id) ON DELETE CASCADE,
  maintenance_type TEXT NOT NULL, is_explicit INTEGER NOT NULL DEFAULT 1,
  PRIMARY KEY(operation_id,maintenance_type));
+CREATE TABLE IF NOT EXISTS materials(
+ id INTEGER PRIMARY KEY, name TEXT NOT NULL, quantity REAL, unit TEXT, component_code TEXT REFERENCES components(code),
+ maintenance_type TEXT, source_document_id INTEGER NOT NULL REFERENCES documents(id), source_page INTEGER NOT NULL,
+ source_table TEXT, source_row TEXT, source_hash TEXT, review_status TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS criteria(
+ id INTEGER PRIMARY KEY, parameter TEXT NOT NULL, comparator TEXT, value REAL, value_max REAL, unit TEXT, verbatim TEXT NOT NULL,
+ component_code TEXT REFERENCES components(code), operation_code TEXT, source_document_id INTEGER NOT NULL REFERENCES documents(id),
+ source_page INTEGER NOT NULL, source_table TEXT, source_row TEXT, source_hash TEXT, review_status TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS ingest_runs(
  id INTEGER PRIMARY KEY, document_id INTEGER NOT NULL REFERENCES documents(id), status TEXT NOT NULL,
  selected_pages TEXT, notes TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
@@ -80,6 +89,16 @@ def insert_operation(con: sqlite3.Connection, document_id: int, op: MaintenanceO
                 (oid,i.verbatim,i.value,i.value_max,i.unit,i.qualifier,i.tolerance_percent))
         for t in op.marks.enabled(): con.execute("INSERT INTO matrix_marks(operation_id,maintenance_type,is_explicit) VALUES(?,?,1)",(oid,t))
     return oid
+
+
+def insert_material(con: sqlite3.Connection, document_id: int, fact: MaterialFact) -> int:
+    cur=con.execute("""INSERT INTO materials(name,quantity,unit,component_code,maintenance_type,source_document_id,source_page,source_table,source_row,source_hash,review_status)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?)""",(fact.name,fact.quantity,fact.unit,fact.component_code,fact.maintenance_type,document_id,fact.source.page,fact.source.table,fact.source.row,fact.source.source_hash,fact.review_status.value)); con.commit(); return int(cur.lastrowid)
+
+
+def insert_criterion(con: sqlite3.Connection, document_id: int, fact: CriterionFact) -> int:
+    cur=con.execute("""INSERT INTO criteria(parameter,comparator,value,value_max,unit,verbatim,component_code,operation_code,source_document_id,source_page,source_table,source_row,source_hash,review_status)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(fact.parameter,fact.comparator,fact.value,fact.value_max,fact.unit,fact.verbatim,fact.component_code,fact.operation_code,document_id,fact.source.page,fact.source.table,fact.source.row,fact.source.source_hash,fact.review_status.value)); con.commit(); return int(cur.lastrowid)
 
 
 def export_plan_xlsx(con: sqlite3.Connection, path: str | Path) -> Path:
