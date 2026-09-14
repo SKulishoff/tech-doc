@@ -68,7 +68,6 @@ def extract_operation_candidates(rows: Sequence[Sequence[object]], *, document_c
             if interval and interval.unit=="unknown" and interval_header_unit:
                 interval=interval.model_copy(update={"unit":interval_header_unit})
         if interval is None:
-            # Some supplier tables place calendar intervals in the same matrix region.
             for cell in row:
                 candidate=parse_interval(clean(cell))
                 if candidate and (candidate.unit!="unknown" or candidate.qualifier=="event"):
@@ -119,4 +118,57 @@ def extract_criterion_facts(rows: Sequence[Sequence[object]], *, document_code: 
             value=float(match.group("value").replace(",",".")) if match.group("value") else None
             out.append(CriterionFact(parameter=text[:160],comparator=match.group("cmp"),value=value,unit=match.group("unit"),verbatim=text,
                 source=SourceLocator(document_code=document_code,page=page,table=table_name,row=str(row_no))))
+    return out
+
+
+PROSE_ACTION_RE = re.compile(
+    r"(?:^|\b)(?:произвести|выполнить|провести|проводить|проверить|контролировать|осмотреть|очистить|заменить|смазать|измерить|осуществить)\b",
+    re.I,
+)
+SECTION_PREFIX_RE = re.compile(r"^\s*(\d+(?:\.\d+){1,5})\s+")
+
+
+def _compact_operation_text(text: str, limit: int = 360) -> tuple[str, str | None]:
+    value=clean(text); section=None
+    m=SECTION_PREFIX_RE.match(value)
+    if m:
+        section=m.group(1); value=value[m.end():].strip()
+    # One source paragraph may carry procedure detail; candidate name stays bounded but verbatim source is not persisted here.
+    first=re.split(r"(?<=[.!?])\s+(?=[А-ЯA-Z0-9])",value,maxsplit=1)[0].strip()
+    return (first[:limit] if len(first)>limit else first), section
+
+
+def extract_prose_operation_candidates(text: str, *, document_code: str, page: int, label: str | None = None) -> list[MaintenanceOperationCandidate]:
+    value=clean(text)
+    if len(value)<8 or not PROSE_ACTION_RE.search(value): return []
+    low=value.lower()
+    # Suppress common non-maintenance meta/safety statements. They can still be found in source but are not Plan ТО operations.
+    if any(x in low for x in ("персонал обязан", "персоналу запрещ", "должны соблюдаться", "требования безопасности", "следует произвести необходимые записи")):
+        return []
+    operation,section=_compact_operation_text(value)
+    interval=parse_interval(value)
+    confidence=0.55
+    if section: confidence+=0.08
+    if interval: confidence+=0.07
+    return [MaintenanceOperationCandidate(
+        operation_name=operation,
+        interval=interval,
+        regulating_document=document_code,
+        source=SourceLocator(document_code=document_code,page=page,section=section),
+        confidence=min(confidence,0.75),
+        review_status=ReviewStatus.NEED_REVIEW,
+    )]
+
+
+def extract_prose_criterion_facts(text: str, *, document_code: str, page: int) -> list[CriterionFact]:
+    value=clean(text); out=[]
+    for match in CRITERION_RE.finditer(value):
+        cmp=match.group("cmp"); raw_value=match.group("value")
+        number=float(raw_value.replace(",",".")) if raw_value else None
+        start=max(0,match.start()-90); end=min(len(value),match.end()+110)
+        snippet=value[start:end].strip()
+        out.append(CriterionFact(
+            parameter=snippet[:160], comparator=cmp, value=number, unit=match.group("unit"), verbatim=snippet,
+            source=SourceLocator(document_code=document_code,page=page), review_status=ReviewStatus.NEED_REVIEW,
+        ))
     return out
