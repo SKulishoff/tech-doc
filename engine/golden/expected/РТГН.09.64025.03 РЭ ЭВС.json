@@ -9,5 +9,14 @@
     "IS540": 600000,
     "IS600": 1200000,
     "IS700": 2400000
-  }
+  },
+  "operations": [
+    {"name": "Общий визуальный контроль", "page": 34, "source_point": "3.3.2", "marks": [], "interval": {"value": 12500, "unit": "km", "tolerance_percent": 10}},
+    {"name": "Визуальный контроль волосных трещин", "page": 34, "source_point": "3.3.3", "marks": [], "interval": {"value": 300000, "unit": "km", "tolerance_percent": 20}},
+    {"name": "Контроль трещин", "page": 34, "source_point": "3.3.3", "marks": [], "interval": {"value": 300000, "unit": "km", "tolerance_percent": 20}},
+    {"name": "Визуальный контроль сквозных трещин", "page": 34, "source_point": "3.3.3", "marks": [], "interval": {"value": 300000, "unit": "km", "tolerance_percent": 20}},
+    {"name": "Визуальный контроль пятен подгара", "page": 34, "source_point": "3.3.4", "marks": [], "interval": {"value": 300000, "unit": "km", "tolerance_percent": 20}},
+    {"name": "Проверка резьбовых соединений", "page": 34, "source_point": "3.3.5", "marks": [], "interval": {"value": 1200000, "unit": "km", "tolerance_percent": 20}},
+    {"name": "Контроль износа", "page": 34, "source_point": "3.3.6", "marks": [], "interval": {"value": 300000, "unit": "km", "tolerance_percent": 20}}
+  ]
 }
