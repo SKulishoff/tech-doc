@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from typing import Sequence
 
-from . import MAINTENANCE_TYPES
 from .core import (
     MaintenanceOperationCandidate, MatrixMarks, ReviewStatus, SourceLocator,
     detect_matrix_columns, marks_from_row, parse_interval,
@@ -26,40 +25,63 @@ def _find_header(rows: Sequence[Sequence[object]], aliases: tuple[str, ...], max
     return best
 
 
-def extract_operation_candidates(rows: Sequence[Sequence[object]], *, document_code: str, page: int, table_name: str | None = None) -> list[MaintenanceOperationCandidate]:
-    """Extract conservative candidates from an operation matrix/list.
+def _unit_from_header(text: str) -> str | None:
+    low=text.lower()
+    if re.search(r"\bкм\b|километр",low): return "km"
+    if re.search(r"\bсут|дн",low): return "day"
+    if "месяц" in low: return "month"
+    if re.search(r"\bлет\b|год",low): return "year"
+    if "цикл" in low: return "cycle"
+    if "час" in low: return "hour"
+    return None
 
-    No component is auto-linked here and no missing IS mark is inferred.
-    """
+
+def extract_operation_candidates(rows: Sequence[Sequence[object]], *, document_code: str, page: int, table_name: str | None = None) -> list[MaintenanceOperationCandidate]:
+    """Conservative table extractor. It never invents an IS mark or component link."""
     if not rows: return []
-    op_h=_find_header(rows,("работа по техническому обслуживанию","наименование операции","содержание работ","операция","работа"))
+    op_h=_find_header(rows,("работа по техническому обслуживанию","наименование работы и объекта то","виды работ при обслуживании","наименование операции","содержание работ","тип работ","операция","работа"))
     comp_h=_find_header(rows,("составная часть","компонент","элемент"))
     doc_h=_find_header(rows,("документ (эд)","наименование документа","документ","эд"))
-    point_h=_find_header(rows,("пункты эд","пункт эд","пункт"))
+    point_h=_find_header(rows,("номер пункта рэ","пункты эд","пункт эд","указание по выполнению работ","пункт"))
+    interval_h=_find_header(rows,("периодичность, км","периодичность","межремонтный пробег","интервал"))
     if not op_h: return []
-    header_end=max([x[0] for x in (op_h,comp_h,doc_h,point_h) if x] + [0])
-    matrix_cols=detect_matrix_columns(rows[:header_end+2])
-    out=[]
+    header_end=max([x[0] for x in (op_h,comp_h,doc_h,point_h,interval_h) if x] + [0])
+    matrix_cols=detect_matrix_columns(rows[:header_end+3])
+    interval_header_text=clean(rows[interval_h[0]][interval_h[1]]) if interval_h else ""
+    interval_header_unit=_unit_from_header(interval_header_text)
+    out=[]; last_component=None; last_doc=document_code
     for row_no,row in enumerate(rows[header_end+1:],start=header_end+2):
         if op_h[1]>=len(row): continue
         operation=clean(row[op_h[1]])
         if len(operation)<3: continue
-        # Avoid treating repeated headers as operations.
         low=operation.lower()
-        if any(x in low for x in ("работа по техническому обслуживанию","наименование операции")): continue
+        if any(x in low for x in ("работа по техническому обслуживанию","наименование операции","наименование работы и объекта то")): continue
         marks=marks_from_row(row,matrix_cols) if matrix_cols else MatrixMarks()
-        supplier_component=clean(row[comp_h[1]]) if comp_h and comp_h[1]<len(row) else None
-        source_doc=clean(row[doc_h[1]]) if doc_h and doc_h[1]<len(row) else document_code
+        supplier_component=clean(row[comp_h[1]]) if comp_h and comp_h[1]<len(row) else ""
+        if supplier_component: last_component=supplier_component
+        source_doc=clean(row[doc_h[1]]) if doc_h and doc_h[1]<len(row) else ""
+        if source_doc: last_doc=source_doc
         point=clean(row[point_h[1]]) if point_h and point_h[1]<len(row) else None
-        status=ReviewStatus.NEED_REVIEW
+        interval=None
+        if interval_h and interval_h[1]<len(row):
+            interval=parse_interval(clean(row[interval_h[1]]))
+            if interval and interval.unit=="unknown" and interval_header_unit:
+                interval=interval.model_copy(update={"unit":interval_header_unit})
+        if interval is None:
+            # Some supplier tables place calendar intervals in the same matrix region.
+            for cell in row:
+                candidate=parse_interval(clean(cell))
+                if candidate and (candidate.unit!="unknown" or candidate.qualifier=="event"):
+                    interval=candidate; break
         out.append(MaintenanceOperationCandidate(
-            supplier_component_name=supplier_component or None,
+            supplier_component_name=last_component or None,
             operation_name=operation,
+            interval=interval,
             marks=marks,
-            regulating_document=source_doc or document_code,
+            regulating_document=last_doc or document_code,
             source=SourceLocator(document_code=document_code,page=page,section=point or None,table=table_name,row=str(row_no)),
-            confidence=0.75 if marks.enabled() else 0.6,
-            review_status=status,
+            confidence=0.80 if marks.enabled() else 0.65,
+            review_status=ReviewStatus.NEED_REVIEW,
         ))
     return out
 
@@ -67,14 +89,13 @@ def extract_operation_candidates(rows: Sequence[Sequence[object]], *, document_c
 def extract_material_facts(rows: Sequence[Sequence[object]], *, document_code: str, page: int, table_name: str | None = None) -> list[MaterialFact]:
     if not rows: return []
     name_h=_find_header(rows,("наименование материала","материал","смазочный материал","расходный материал","жидкость","зип"))
-    qty_h=_find_header(rows,("количество","расход","норма"))
-    unit_h=_find_header(rows,("единица измерения","ед. изм","единица"))
+    qty_h=_find_header(rows,("количество","расход","норма")); unit_h=_find_header(rows,("единица измерения","ед. изм","единица"))
     if not name_h: return []
     start=max([x[0] for x in (name_h,qty_h,unit_h) if x])+1; out=[]
     for row_no,row in enumerate(rows[start:],start=start+1):
         if name_h[1]>=len(row): continue
         name=clean(row[name_h[1]])
-        if not name or "материал" in name.lower() and len(name)<30: continue
+        if not name or ("материал" in name.lower() and len(name)<30): continue
         qty=None
         if qty_h and qty_h[1]<len(row):
             m=re.search(r"\d+(?:[.,]\d+)?",clean(row[qty_h[1]]))
