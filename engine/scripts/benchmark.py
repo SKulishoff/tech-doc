@@ -26,17 +26,17 @@ def main() -> int:
     scanner=MaintenancePipeline(); parser=DoclingAdapter(artifacts_path=args.models,enable_ocr=False)
     total_e=total_f=total_c=0
     for pdf in pdfs:
-        expected=load_expected(args.expected,pdf.stem); scan=scanner.scan_pdf(pdf); found={}; kinds={}
+        expected=load_expected(args.expected,pdf.stem); scan=scanner.scan_pdf(pdf); found={}; kinds={}; table_pages=[]
         for start,end in scan.ranges:
             parsed=parser.parse_range(pdf,start,end)
             for table in parsed.tables:
-                kind=str(classify_table(table)); kinds[kind]=kinds.get(kind,0)+1
-                for k,v in extract_periodicity_rows(table).items():
+                kind=str(classify_table(table.rows)); kinds[kind]=kinds.get(kind,0)+1; table_pages.append((table.table_index,table.page_no,kind))
+                for k,v in extract_periodicity_rows(table.rows).items():
                     if v.value is not None: found[k]=v.value
         exp=expected.get("intervals",{}); correct=sum(1 for k,v in exp.items() if found.get(k)==float(v))
         total_e+=len(exp); total_f+=len(found); total_c+=correct
         recall=correct/len(exp) if exp else 1.0; precision=correct/len(found) if found else (1.0 if not exp else 0.0)
-        print(f"\n{pdf.name}\n  selected pages: {scan.candidate_pages}\n  ranges: {scan.ranges}\n  tables: {kinds}")
+        print(f"\n{pdf.name}\n  selected pages: {scan.candidate_pages}\n  ranges: {scan.ranges}\n  tables: {kinds}\n  table provenance: {table_pages}")
         print(f"  intervals expected/found/correct: {len(exp)}/{len(found)}/{correct}; recall={recall:.3f}; precision={precision:.3f}")
         missing=sorted(set(exp)-set(found)); wrong={k:(exp[k],found[k]) for k in exp.keys()&found.keys() if float(exp[k])!=found[k]}
         if missing: print("  missing:",missing)
